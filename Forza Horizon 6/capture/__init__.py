@@ -1,0 +1,35 @@
+# capture/__init__.py — Public API surface
+from .capture import (
+    grab_frame,
+    grab_window,
+    grab_region,
+    get_monitor_dims,
+    get_client_rect,
+    find_game_window,
+    get_window_pid,
+    set_window_active,
+    set_process_muted,
+    detect_content_rect,
+    force_english_ime,
+    post_key,
+    post_click,
+    post_client_click,
+    post_scroll,
+    mouse_click,
+    mouse_scroll,
+    load_template,
+    get_template_geometry,
+    set_template_geometry,
+    CaptureSession,
+    NodeSession,
+)
+
+__all__ = [
+    "grab_frame", "grab_window", "grab_region", "get_monitor_dims",
+    "get_client_rect", "find_game_window", "get_window_pid",
+    "set_window_active", "set_process_muted", "detect_content_rect",
+    "force_english_ime", "post_key", "post_click", "post_client_click",
+    "post_scroll", "mouse_click", "mouse_scroll",
+    "load_template", "get_template_geometry", "set_template_geometry",
+    "CaptureSession", "NodeSession",
+]

@@ -1,0 +1,15 @@
+{
+  "_comment": "Mastery tree unlock path — 4x4 grid, row-major order",
+  "_format": "List of [row, col] (1-based). Start: bottom-left. Navigate with WASD.",
+  "grid": [
+    [4, 1], [4, 2], [4, 3], [4, 4],
+    [3, 1], [3, 2], [3, 3], [3, 4],
+    [2, 1], [2, 2], [2, 3], [2, 4],
+    [1, 1], [1, 2], [1, 3], [1, 4]
+  ],
+  "_notes": {
+    "cursor_start": "bottom-left cell [4, 1]",
+    "navigation": "WASD — one cell per key press",
+    "consecutive": "Nodes are adjacent — one WASD press moves one cell"
+  }
+}

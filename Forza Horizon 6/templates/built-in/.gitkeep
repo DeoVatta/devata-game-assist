@@ -1,0 +1,33 @@
+# Built-in 4K reference templates
+# Capture at 3840×2160 (or native 4K).
+#
+# ── Race templates ──
+# start_menu.png        — "START RACE" button on race start screen
+# restart_menu.png     — "RESTART" / "RACE AGAIN" on results screen
+# creative_hub.png     — Creative Hub menu option
+# eventlab.png          — EventLab submenu
+# play_event.png        — "Play Event" button
+# events_arrow.png     — Events navigation arrow
+# my_history.png        — "My History" menu option
+# choose_race_type.png — Race type selector
+# car_select.png        — Car selection screen
+# next_activity.png     — "What's Next" recommended activity screen
+
+# ── Wheel spin templates ──
+# my_horizon_tab.png    — "My Horizon" top-nav tab
+# super_wheelspin.png   — Super Wheelspin tile (3 wheels)
+# normal_wheelspin.png  — Normal Wheelspin tile (1 wheel)
+# wheelspin_skip.png    — "SKIP" fast-forward prompt
+# wheelspin_collect.png — Prize collect prompt
+# wheelspin_collect_final.png — Final spin collect (no more spins)
+# wheelspin_duplicate.png — Duplicate car reward screen
+
+# ── Buy templates ──
+# collection_log.png    — Collection Journal menu
+# discover_japan.png   — Discover Japan / Master Explorer card
+# car_collection.png   — Car Collection grid view
+# subaru.png           — Subaru brand tile
+# 22b_sti.png          — 22B-STi car tile
+
+# ── Mastery grid ──
+# See mastery_grid.json for node unlock path

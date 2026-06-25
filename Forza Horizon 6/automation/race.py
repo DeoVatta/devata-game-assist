@@ -25,6 +25,7 @@ for p in [_PROJECT_ROOT, _SCRIPT_DIR]:
 from capture import get_monitor_dims, load_template
 from detector import ScreenDetector, MatchResult
 from automation import GameIO, set_session_crop, set_mute_held
+import config as _cfg_mod
 
 
 # ── Template keys used ────────────────────────────────────────
@@ -37,6 +38,9 @@ NAV_KEYS = [
 ]
 NAV_KEYS_OPTIONAL = ["next_activity"]  # exit: results → main menu
 ALL_KEYS = TEMPLATE_KEYS + NAV_KEYS + NAV_KEYS_OPTIONAL
+
+# ── Feature name for template subfolder ────────────────────────
+_FEATURE = "race"
 
 # ── Timing constants ──────────────────────────────────────────
 _PRE_W_WAIT    = 4.0    # after Enter, wait before holding W
@@ -93,12 +97,6 @@ def run(cfg: dict, stop_event: threading.Event,
     nav_enabled = cfg.get("race_menu_nav", True)
     exit_enabled = cfg.get("race_exit_nav", True)
 
-    # Load fresh config for thresholds
-    import config as _cfg_mod
-    _fresh = _cfg_mod.load() if hasattr(_cfg_mod, "load") else cfg
-    tpl_lang = _fresh.get("lang", "en")
-    tpl_folder = _fresh.get("template_folder", "templates/en")
-
     io = GameIO(_fresh, log_cb)
     current_w, current_h = io.width, io.height
     mon_left, mon_top = io.cap_left, io.cap_top
@@ -108,7 +106,11 @@ def run(cfg: dict, stop_event: threading.Event,
     io.mute(_fresh)
     set_mute_held(True)
 
-    # Load templates
+    # Load templates from feature subfolder: templates/<lang>/race/built-in/
+    tpl_lang = _cfg_mod.resolve_template_lang(_fresh)
+    tpl_base = _cfg_mod.get_templates_folder(_fresh)
+    tpl_folder = os.path.join(tpl_base, _FEATURE, "built-in")
+
     detector = ScreenDetector(_fresh)
     templates = {}
 

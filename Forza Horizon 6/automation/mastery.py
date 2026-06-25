@@ -133,11 +133,12 @@ def run(cfg: dict, stop_event: threading.Event,
         force_english_ime()
         time.sleep(0.2)
 
-    # Load grid path
-    tpl_lang = _fresh.get("lang", "en")
-    gfile = grid_file or os.path.join(
-        _PROJECT_ROOT, "templates", tpl_lang, "mastery_grid.json"
-    )
+    # Load grid path from mastery_full subfolder: templates/<lang>/mastery_full/mastery_grid.json
+    import config as _cfg_mod
+    tpl_lang = _cfg_mod.resolve_template_lang(_fresh)
+    tpl_base = _cfg_mod.get_templates_folder(_fresh)
+    grid_folder = os.path.join(tpl_base, "mastery_full")
+    gfile = grid_file or os.path.join(grid_folder, "mastery_grid.json")
     grid_order = _load_grid(gfile)
     if not grid_order:
         log_cb("[Mastery] ERROR: mastery_grid.json not found — cannot run")

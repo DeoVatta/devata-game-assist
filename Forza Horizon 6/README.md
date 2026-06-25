@@ -32,9 +32,13 @@ Forza Horizon 6/
 ├── services/
 │   └── detector.py        # Unified detection orchestrator
 └── templates/             # Template images + grid specs
-    ├── built-in/          # Reference 4K templates
+    ├── built-in/          # Reference 4K templates (cross-resolution)
     ├── en/                # English UI templates
-    └── cht/               # Traditional Chinese UI templates
+    │   ├── race/built-in/
+    │   ├── wheelspin/built-in/
+    │   ├── buy/built-in/
+    │   └── mastery_full/
+    └── cht/               # Traditional Chinese UI templates (same structure)
 ```
 
 ## Dependencies

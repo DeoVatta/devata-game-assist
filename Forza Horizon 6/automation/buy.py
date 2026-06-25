@@ -78,9 +78,12 @@ def run(cfg: dict, stop_event: threading.Event,
     set_mute_held(True)
     io.start_keepalive(lambda: stop_event.is_set(), _fresh)
 
-    # Load templates
-    tpl_lang = _fresh.get("lang", "en")
-    tpl_folder = _fresh.get("template_folder", "templates/en")
+    # Load templates from feature subfolder: templates/<lang>/buy/built-in/
+    import config as _cfg_mod
+    tpl_lang = _cfg_mod.resolve_template_lang(_fresh)
+    tpl_base = _cfg_mod.get_templates_folder(_fresh)
+    tpl_folder = os.path.join(tpl_base, "buy", "built-in")
+
     detector = ScreenDetector(_fresh)
     templates = {}
 

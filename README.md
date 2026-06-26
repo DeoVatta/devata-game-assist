@@ -7,15 +7,15 @@ AI-powered gaming assistant for Windows — screen capture, input logging, syste
 ```powershell
 cd H:\Other computers\My Laptop\Documents\GitHub\devata-game-assist\capture-screen
 
-# Setup: install dependencies
+# Install dependencies
 py -m pip install mss pillow httpx keyboard pynput psutil wmi nvidia-ml-py python-dotenv
 
-# Copy and configure .env
-# copy .env.example .env  (then add your OLAGON_API_KEY)
+# Create .env file in capture-screen/ folder:
+# OLAGON_API_KEY=your_api_key_here
 
 # Jalankan background services SEKALI saat boot:
 python input_logger.py --start     # Keyboard + mouse logging
-python system_monitor.py --start    # CPU/GPU/RAM monitoring
+python system_monitor.py --start  # CPU/GPU/RAM monitoring
 python capture_loop.py             # Screenshot every 10s
 
 # Analyse gameplay on-demand:
@@ -30,17 +30,18 @@ python ask_assistant.py --hotkey
 ```
 capture-screen/
 ├── capture_loop.py      # Screenshot every 10s, FIFO 180 files (30 min)
-├── input_logger.py      # Keyboard + mouse logging, shared via JSON
-├── system_monitor.py    # CPU/GPU/RAM monitoring, shared via JSON
+├── input_logger.py     # Keyboard + mouse logging, shared via JSON
+├── system_monitor.py   # CPU/GPU/RAM monitoring, shared via JSON
 ├── vision_monitor.py    # AI retrospective analysis
-├── ask_assistant.py     # Ask AI questions + point at things on screen
-├── overlay_drawer.py    # Transparent overlay for drawing shapes
-├── screen_capture.py    # One-shot screenshot tool
-├── game_monitor.py      # Fast game detection + screenshot
-├── screenshots/         # Auto-cleaned by FIFO (180 max)
-├── .env                 # API key (local only, not in git)
-├── input_log.json       # Input events buffer
-└── system_log.json      # System perf samples
+├── ask_assistant.py    # Ask AI questions + point at things on screen
+├── overlay_drawer.py   # Transparent overlay for drawing shapes
+├── overlay_annotate.py # PIL-based screenshot annotation
+├── screen_capture.py   # One-shot screenshot tool
+├── game_monitor.py     # Fast game detection + screenshot
+├── screenshots/        # Auto-cleaned by FIFO (180 max)
+├── .env                # API key (local only, not in git)
+├── input_log.json      # Input events buffer
+└── system_log.json     # System perf samples
 ```
 
 ## Commands
@@ -68,28 +69,29 @@ python vision_monitor.py --retro 5 --input --system  # FULL
 
 ### Ask Assistant (Point at Things)
 ```powershell
-python ask_assistant.py --once    # Ask once, show overlay, exit
+python ask_assistant.py --once    # Ask once, show overlay, save annotated screenshot
 python ask_assistant.py --hotkey  # Register Ctrl+Shift+A, stay running
 
 # Hotkey mode:
 # 1. Press Ctrl+Shift+A anywhere (game or desktop)
 # 2. Type your question
 # 3. AI marks the answer with a green rectangle or circle
+# 4. Annotated screenshot saved to screenshots/ folder
 ```
 
 ### Input Logger
 ```powershell
 python input_logger.py --start    # Start (run once, stays in bg)
 python input_logger.py --status   # Check buffer
-python input_logger.py --stop    # Stop and save
+python input_logger.py --stop     # Stop and save
 ```
 
 ### System Monitor
 ```powershell
 python system_monitor.py --start      # Start (run once, stays in bg)
-python system_monitor.py --status    # Latest readings
+python system_monitor.py --status     # Latest readings
 python system_monitor.py --report 5   # 5 min analysis report
-python system_monitor.py --stop      # Stop
+python system_monitor.py --stop       # Stop
 ```
 
 ## Dependencies
@@ -100,7 +102,7 @@ py -m pip install mss pillow httpx keyboard pynput psutil wmi nvidia-ml-py pytho
 
 | Package | Purpose |
 |---------|---------|
-| `mss` | Cross-platform screenshot capture |
+| `mss` | Cross-platform screenshot capture (virtual screen / multi-monitor) |
 | `Pillow` | Image resize for AI payloads |
 | `httpx` | AI Gateway API calls |
 | `keyboard` | Global keypress detection |
@@ -112,12 +114,24 @@ py -m pip install mss pillow httpx keyboard pynput psutil wmi nvidia-ml-py pytho
 
 ## Environment Setup
 
-Create `.env` file in `capture-screen/`:
+Create `.env` file in `capture-screen/` (NOT in project root):
 ```
 OLAGON_API_KEY=your_api_key_here
 ```
 
 Get your API key from Olagon Gateway.
+
+## Multi-Monitor Support
+
+All screen capture uses **virtual screen** (all monitors combined):
+- `mss.monitors[0]` = virtual screen spanning all monitors
+- Overlay window spans full virtual screen
+- Coordinates are 0-indexed from virtual screen top-left
+
+**Current monitor setup:**
+- Virtual screen: 3286x1080 (origin x=-1366)
+- Monitor 1 (primary, right): 1920x1080 at x=0
+- Monitor 2 (secondary, left): 1366x768 at x=-1366
 
 ## What Gets Monitored
 
@@ -134,19 +148,21 @@ All data stored locally. AI called on-demand only (1 request per analysis).
 The `ask_assistant.py` lets you ask questions about what's on screen and AI will **mark the answer directly on screen** with a breathing shape:
 
 **Example use cases:**
-- Open inventory → ask "mana item bernama Shadow Dagger?" → green rect appears on the item
-- Open map → ask "dimana lokasi dungeon?" → green circle appears on the map marker
-- Any screen → ask "item mana yang bisa meningkatkan damage?" → AI marks relevant items
+- "mana Balatro game?" → green rect appears on the Balatro tile
+- "mana folder Minami Lane?" → AI marks folder with green rect
+- "item apa untuk build damage?" → AI marks relevant items
 
 **How it works:**
 1. Press `Ctrl+Shift+A` or run with `--once`
 2. Type your question
-3. Screen is captured and sent to AI with coordinates instruction
-4. AI returns structured response: shape type (rect/circle), pixel coordinates, label, color
-5. Transparent overlay draws the shape with breathing animation for 8 seconds
+3. Screen captured (3286x1080 virtual screen, resized to 1920px for AI)
+4. AI analyzes and returns shape + pixel coordinates
+5. Coordinates scaled back to virtual screen coords
+6. Transparent overlay draws the shape with breathing animation
+7. Annotated screenshot saved to `screenshots/annotated_*.png`
 
 **Shape rules:**
-- `rect` — for boxes, cards, inventory slots, item icons
+- `rect` — for boxes, cards, inventory slots, item icons, game tiles
 - `circle` — for orbs, gems, map markers, circular icons
 
 **Color codes:**

@@ -13,8 +13,10 @@ import json
 import time
 import sys
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv(__file__ + '/../.env')
+SCRIPT_DIR = Path(__file__).parent
+load_dotenv(SCRIPT_DIR / ".env")
 import httpx
 from datetime import datetime, timedelta
 from pathlib import Path

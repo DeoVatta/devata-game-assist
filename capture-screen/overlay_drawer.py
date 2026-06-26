@@ -1,16 +1,15 @@
 # overlay_drawer.py
-# Full-screen transparent overlay — draws rect/circle with breathing outline
-# Architecture: subprocess-based (tkinter runs in its own process, clean and stable)
-# Draw commands passed via command-line arguments.
+# Full-screen transparent overlay via tkinter subprocess
+# Spawns a separate process for each overlay — reliable and stable
 #
 # Usage:
 #   python overlay_drawer.py --rect --x 500 --y 300 --w 200 --h 100 --label "Item" --dur 8
 #   python overlay_drawer.py --circle --cx 960 --cy 540 --r 60 --label "Portal" --dur 8
 #
-# Python API (spawns subprocess):
+# Python API:
 #   from overlay_drawer import show_rect, show_circle, close_all
-#   show_rect(x, y, w, h, label="", duration=5)
-#   show_circle(cx, cy, r, label="", duration=5)
+#   show_rect(x, y, w, h, label="", color="#00FF00", duration=5)
+#   show_circle(cx, cy, r, label="", color="#00FF00", duration=5)
 #   close_all()
 
 import subprocess
@@ -21,24 +20,16 @@ import threading
 import uuid
 
 _lock = threading.Lock()
-_active = {}   # pid -> proc
+_active = {}   # uid -> proc
 
 
 def show_rect(x, y, w, h, label="", color="#00FF00", duration=5):
-    _spawn_proc(["--rect",
-                 "--x", str(x), "--y", str(y),
-                 "--w", str(w), "--h", str(h),
-                 "--label", label,
-                 "--color", color,
-                 "--dur", str(duration)])
+    _spawn(shape="rect", x=x, y=y, w=w, h=h, cx=0, cy=0, r=0,
+           label=label, color=color, duration=duration)
 
 def show_circle(cx, cy, r, label="", color="#00FF00", duration=5):
-    _spawn_proc(["--circle",
-                 "--cx", str(cx), "--cy", str(cy),
-                 "--r", str(r),
-                 "--label", label,
-                 "--color", color,
-                 "--dur", str(duration)])
+    _spawn(shape="circle", x=0, y=0, w=0, h=0, cx=cx, cy=cy, r=r,
+           label=label, color=color, duration=duration)
 
 def show_rect_rel(x, y, w, h, label="", color="#00FF00", duration=5):
     sw, sh = _screen_size()
@@ -50,21 +41,47 @@ def show_circle_rel(cx, cy, r, label="", color="#00FF00", duration=5):
     show_circle(int(cx*sw), int(cy*sh), int(r*sw),
                 label, color, duration)
 
-def _spawn_proc(args):
+def _spawn(shape, x, y, w, h, cx, cy, r, label, color, duration):
     script = os.path.abspath(__file__)
+    uid = uuid.uuid4().hex[:8]
+    args = [
+        "--uid=" + uid,
+        "--shape=" + shape,
+        "--x=" + str(x), "--y=" + str(y),
+        "--w=" + str(w), "--h=" + str(h),
+        "--cx=" + str(cx), "--cy=" + str(cy), "--r=" + str(r),
+        "--label=" + str(label),
+        "--color=" + str(color),
+        "--dur=" + str(duration),
+    ]
+    creation_flags = 0
+    if sys.platform == "win32":
+        try:
+            creation_flags = 0x08000000  # CREATE_NO_WINDOW
+        except Exception:
+            pass
     proc = subprocess.Popen(
         [sys.executable, script] + args,
-        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+        creationflags=creation_flags,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         stdin=subprocess.DEVNULL
     )
     with _lock:
-        _active[proc.pid] = proc
+        _active[uid] = proc
+
+def _screen_size():
+    try:
+        import mss
+        with mss.MSS() as sct:
+            v = sct.monitors[0]
+            return v["width"], v["height"], v["left"], v["top"]
+    except Exception:
+        return 1920, 1080, 0, 0
 
 def close_all():
     with _lock:
-        for pid, proc in list(_active.items()):
+        for uid, proc in list(_active.items()):
             try:
                 proc.terminate()
                 proc.wait(timeout=2)
@@ -73,73 +90,53 @@ def close_all():
                     proc.kill()
                 except Exception:
                     pass
-            except Exception:
-                pass
         _active.clear()
-
-def _screen_size():
-    """Return virtual screen size (all monitors combined)."""
-    try:
-        with mss.mss() as sct:
-            return sct.monitors[0]["width"], sct.monitors[0]["height"]
-    except Exception:
-        pass
-    try:
-        import tkinter as tk
-        r = tk.Tk(); r.withdraw()
-        w, h = r.winfo_screenwidth(), r.winfo_screenheight()
-        r.destroy()
-        return w, h
-    except Exception:
-        return 1920, 1080
 
 
 # ================================================================
-# OVERLAY WINDOW — runs as standalone subprocess
+# OVERLAY WINDOW — standalone subprocess
 # ================================================================
 if __name__ == "__main__":
     import math
     import tkinter as tk
+    import mss
 
     args = sys.argv[1:]
 
     def get(key, default=""):
-        try:
-            i = args.index(f"--{key}")
-            return args[i + 1]
-        except (ValueError, IndexError):
-            return default
+        for arg in args:
+            if arg.startswith(f"--{key}="):
+                return arg.split("=", 1)[1]
+        return default
 
-    shape = "--rect" in args and "rect" or "circle"
-    duration = int(get("dur", 8))
-    label = get("label", "")
-    color = get("color", "#00FF00")
+    uid     = get("uid", "overlay")
+    shape   = get("shape", "rect")
+    x       = int(get("x", 500))
+    y       = int(get("y", 300))
+    w       = int(get("w", 200))
+    h       = int(get("h", 100))
+    cx      = int(get("cx", 960))
+    cy      = int(get("cy", 540))
+    r       = int(get("r", 60))
+    label   = get("label", "")
+    color   = get("color", "#00FF00")
+    duration = max(1, int(get("dur", 8)))
 
-    if shape == "rect":
-        x = int(get("x", 500))
-        y = int(get("y", 300))
-        w = int(get("w", 200))
-        h = int(get("h", 100))
-    else:
-        cx = int(get("cx", 960))
-        cy = int(get("cy", 540))
-        r = int(get("r", 60))
+    # Get VIRTUAL SCREEN dimensions (all monitors combined)
+    with mss.MSS() as sct:
+        vmon = sct.monitors[0]
+        sw = vmon["width"]
+        sh = vmon["height"]
+        vx = vmon["left"]
+        vy = vmon["top"]
 
-    # Build overlay
+    # Build overlay window spanning entire virtual screen
     root = tk.Tk()
     root.attributes("-alpha", 0, "-topmost", True,
                    "-disabled", True, "-transparentcolor", "#000000")
     root.overrideredirect(True)
-
-    # Use virtual screen (all monitors combined)
-    try:
-        with mss.mss() as sct:
-            sw = sct.monitors[0]["width"]
-            sh = sct.monitors[0]["height"]
-    except Exception:
-        sw = root.winfo_screenwidth()
-        sh = root.winfo_screenheight()
-    root.geometry(f"{sw}x{sh}+0+0")
+    # Virtual screen origin may NOT be 0,0 — use actual vx,vy
+    root.geometry(f"{sw}x{sh}+{vx}+{vy}")
     root.configure(bg="#000000")
 
     cv = tk.Canvas(root, width=sw, height=sh,

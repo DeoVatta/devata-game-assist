@@ -1,7 +1,16 @@
+﻿# Screenshots — user-specific, never commit
+capture-screen/screenshots/
+*.png
+
+# Live log files — generated at runtime
+capture-screen/input_log.json
+capture-screen/system_log.json
+capture-screen/status.json
+
+# Python
 __pycache__/
 *.pyc
-*.pyo
-.pytest_cache/
-*.egg-info/
-dist/
-build/
+
+# OS
+.DS_Store
+Thumbs.db

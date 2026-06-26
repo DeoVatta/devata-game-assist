@@ -78,6 +78,12 @@ def close_all():
         _active.clear()
 
 def _screen_size():
+    """Return virtual screen size (all monitors combined)."""
+    try:
+        with mss.mss() as sct:
+            return sct.monitors[0]["width"], sct.monitors[0]["height"]
+    except Exception:
+        pass
     try:
         import tkinter as tk
         r = tk.Tk(); r.withdraw()
@@ -125,8 +131,14 @@ if __name__ == "__main__":
                    "-disabled", True, "-transparentcolor", "#000000")
     root.overrideredirect(True)
 
-    sw = root.winfo_screenwidth()
-    sh = root.winfo_screenheight()
+    # Use virtual screen (all monitors combined)
+    try:
+        with mss.mss() as sct:
+            sw = sct.monitors[0]["width"]
+            sh = sct.monitors[0]["height"]
+    except Exception:
+        sw = root.winfo_screenwidth()
+        sh = root.winfo_screenheight()
     root.geometry(f"{sw}x{sh}+0+0")
     root.configure(bg="#000000")
 

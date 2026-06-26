@@ -52,15 +52,26 @@ except ImportError:
     TK_AVAILABLE = False
 
 # ============== SCREENSHOT ==============
-def capture_screen() -> str:
-    """Capture full screen, return base64 PNG."""
+def capture_screen() -> tuple[str, int, int]:
+    """Capture full VIRTUAL screen (all monitors), return (b64, virtual_w, virtual_h)."""
     with mss.mss() as sct:
         monitor = sct.monitors[0]
         img = sct.grab(monitor)
         buf = mss.tools.to_png(img.rgb, img.size)
-    return base64.b64encode(buf).decode("utf-8")
+        b64 = base64.b64encode(buf).decode("utf-8")
+        sw = sct.monitors[0]["width"]
+        sh = sct.monitors[0]["height"]
+    return b64, sw, sh
 
 def get_screen_size():
+    """Return virtual screen size (all monitors combined, 0-indexed origin)."""
+    try:
+        with mss.mss() as sct:
+            sw = sct.monitors[0]["width"]
+            sh = sct.monitors[0]["height"]
+        return sw, sh
+    except Exception:
+        pass
     if TK_AVAILABLE:
         root = tk.Tk()
         root.withdraw()
@@ -71,12 +82,10 @@ def get_screen_size():
     return 1920, 1080
 
 # ============== AI QUERY ==============
-def ask_ai(question: str, screen_b64: str) -> str:
+def ask_ai(question: str, screen_b64: str, sw: int, sh: int) -> str:
     """Send question + screenshot to AI, return text response."""
     if not API_KEY:
         return "ERROR: OLAGON_API_KEY not set in .env"
-
-    sw, sh = get_screen_size()
 
     payload = {
         "model": MODEL,
@@ -88,7 +97,9 @@ def ask_ai(question: str, screen_b64: str) -> str:
                 {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": screen_b64}},
                 {"type": "text", "text": f"""You are a game assistant. The user asks: "{question}"
 
-Screen resolution: {sw}x{sh} pixels. The user wants you to mark/point to the answer on screen.
+IMPORTANT: This screenshot covers the FULL VIRTUAL SCREEN (all monitors combined).
+Virtual screen resolution: {sw}x{sh} pixels.
+Coordinates are 0-indexed from the TOP-LEFT of the virtual screen.
 
 RESPOND ONLY with this EXACT format (no other text):
 ```
@@ -108,7 +119,9 @@ REASONING: <1 sentence why this is the answer>
 Rules:
 - Use SHAPE=rect for items that are boxes/squares/cards/inventory slots
 - Use SHAPE=circle for items that are circular (orbs, gems, icons, minimap markers)
-- X,Y are top-left pixel coordinates (0-indexed from top-left)
+- X,Y are top-left pixel COORDINATES on the virtual screen (0-indexed from top-left)
+- For items on LEFT monitor: x is small (e.g. 100-1920)
+- For items on RIGHT monitor: x is large (e.g. 1920+)
 - WIDTH/HEIGHT should be slightly larger than the item (10-30px padding)
 - RADIUS should include the item with small padding
 - LABEL: max 30 chars, use game item name or short description
@@ -303,16 +316,16 @@ def query_loop():
 
     print(f"\n[ask] Q: {question}")
 
-    # 2. Capture screen
-    print("[ask] Capturing screen...")
+    # 2. Capture screen (returns b64 + virtual screen size)
+    print("[ask] Capturing virtual screen (all monitors)...")
     t0 = time.time()
-    screen_b64 = capture_screen()
-    print(f"[ask] Captured ({len(screen_b64)} chars, {time.time()-t0:.1f}s)")
+    screen_b64, vw, vh = capture_screen()
+    print(f"[ask] Captured {vw}x{vh} virtual ({len(screen_b64)} chars, {time.time()-t0:.1f}s)")
 
     # 3. Ask AI
     print("[ask] Sending to AI...")
     t1 = time.time()
-    response = ask_ai(question, screen_b64)
+    response = ask_ai(question, screen_b64, vw, vh)
     print(f"[ask] AI response ({time.time()-t1:.1f}s):")
     print("  " + response[:200].replace('\n', '\n  '))
 

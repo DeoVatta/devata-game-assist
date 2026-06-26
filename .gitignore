@@ -2,7 +2,7 @@
 capture-screen/screenshots/
 *.png
 
-# Live log files — generated at runtime
+# Live log files.env\n — generated at runtime
 capture-screen/input_log.json
 capture-screen/system_log.json
 capture-screen/status.json

@@ -13,6 +13,8 @@ import json
 import time
 import sys
 import os
+from dotenv import load_dotenv
+load_dotenv(__file__ + '/../.env')
 import httpx
 from datetime import datetime, timedelta
 from pathlib import Path

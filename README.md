@@ -1,6 +1,6 @@
 # devata-game-assist
 
-AI-powered gaming assistant for Windows — screen capture, input logging, system monitoring, AI analysis, and on-screen answer pointing.
+AI-powered gaming assistant for Windows — persistent overlay, screen capture, AI analysis, and on-screen answer pointing.
 
 ## Quick Start
 
@@ -13,86 +13,92 @@ py -m pip install mss pillow httpx keyboard pynput psutil wmi nvidia-ml-py pytho
 # Create .env file in capture-screen/ folder:
 # OLAGON_API_KEY=your_api_key_here
 
-# Jalankan background services SEKALI saat boot:
-python input_logger.py --start     # Keyboard + mouse logging
-python system_monitor.py --start  # CPU/GPU/RAM monitoring
-python capture_loop.py             # Screenshot every 10s
+# Start Game Assist (Gemini Live style) — RECOMMENDED
+python game_assist.py
 
-# Analyse gameplay on-demand:
-python vision_monitor.py --retro 5 --input --system
+# Or use AI Chat CLI
+python ai_chat.py
+```
 
-# Ask AI to point at things on screen (Ctrl+Shift+A hotkey):
-python ask_assistant.py --hotkey
+## Core: game_assist.py
+
+**Gemini Live-style persistent game assistant** with floating bubble overlay.
+
+```
+python game_assist.py              # Start with overlay + global hotkey
+python game_assist.py --once "Q"  # Single question
+```
+
+**Hotkey:** `Ctrl+Shift+G` (global — works while gaming)
+
+| Command | Description |
+|---------|-------------|
+| `ask <Q>` | Ask anything about your current game |
+| `item` | Identify the item you're looking at |
+| `solve` | Analyze and solve current puzzle |
+| `what` | What's happening on screen? (auto-describe) |
+| `next` | What should I do next? |
+| `game` | Detect what game is playing |
+| `toggle` | Show/hide bubble overlay |
+| `clear` | Clear conversation context |
+| `quit` | Exit |
+
+**How it works:**
+1. Floating bubble overlay always visible (bottom-right corner)
+2. Press `Ctrl+Shift+G` or type question in CLI
+3. AI analyzes current screen + conversation context
+4. Answer appears as speech bubble on overlay
+5. Conversation history preserved for context-aware answers
+
+## ai_chat.py — Unified CLI
+
+All capture-screen tools in one CLI with ANSI styling.
+
+```
+python ai_chat.py                    # Interactive REPL
+python ai_chat.py ask "question"    # Ask AI
+python ai_chat.py capture            # Screenshot
+python ai_chat.py vision            # AI single frame analysis
+python ai_chat.py retro [min]      # Retrospective analysis
+python ai_chat.py loop              # Screenshot every 10s
+python ai_chat.py log start|stop   # Input logger
+python ai_chat.py sys start|status  # System monitor
+python ai_chat.py game             # Game detection
+python ai_chat.py overlay X Y W H  # Draw rect overlay
 ```
 
 ## Architecture
 
 ```
 capture-screen/
-├── capture_loop.py      # Screenshot every 10s, FIFO 180 files (30 min)
-├── input_logger.py     # Keyboard + mouse logging, shared via JSON
-├── system_monitor.py   # CPU/GPU/RAM monitoring, shared via JSON
-├── vision_monitor.py    # AI retrospective analysis
-├── ask_assistant.py    # Ask AI questions + point at things on screen
-├── overlay_drawer.py   # Transparent overlay for drawing shapes
-├── overlay_annotate.py # PIL-based screenshot annotation
-├── screen_capture.py   # One-shot screenshot tool
-├── game_monitor.py     # Fast game detection + screenshot
-├── screenshots/        # Auto-cleaned by FIFO (180 max)
-├── .env                # API key (local only, not in git)
+├── game_assist.py      # Gemini Live style — bubble overlay (MAIN)
+├── ai_chist.py         # Unified CLI with all features
+├── ask_assistant.py    # Ask AI + point overlay
+├── overlay_drawer.py   # Transparent shape overlay
+├── overlay_annotate.py # PIL screenshot annotation
+├── vision_monitor.py   # AI retrospective analysis
+├── capture_loop.py    # Screenshot every 10s, FIFO 180 files
+├── input_logger.py     # Keyboard + mouse logging
+├── system_monitor.py   # CPU/GPU/RAM monitoring
+├── screen_capture.py   # One-shot screenshot
+├── game_monitor.py     # Fast game detection
+├── screenshots/        # Auto-cleaned FIFO (180 max)
+├── .env               # API key (local only, not in git)
 ├── input_log.json      # Input events buffer
 └── system_log.json     # System perf samples
 ```
 
-## Commands
+## Multi-Monitor Support
 
-### Screen Capture
-```powershell
-python screen_capture.py          # Screenshot all monitors
-python screen_capture.py mon1     # Monitor 1 only
-python screen_capture.py list     # List recent screenshots
-```
+All capture uses **virtual screen** (all monitors combined):
+- `mss.monitors[0]` = virtual screen spanning all monitors
+- Overlay spans full virtual screen
+- Coordinates 0-indexed from virtual screen top-left
 
-### Game Monitor
-```powershell
-python game_monitor.py            # Fast detect + screenshot
-```
-
-### Vision Monitor (AI Retrospective Analysis)
-```powershell
-python vision_monitor.py                       # Single capture analysis
-python vision_monitor.py --retro 5            # 5 min retrospective
-python vision_monitor.py --retro --input     # + input sync
-python vision_monitor.py --retro --system    # + system perf
-python vision_monitor.py --retro 5 --input --system  # FULL
-```
-
-### Ask Assistant (Point at Things)
-```powershell
-python ask_assistant.py --once    # Ask once, show overlay, save annotated screenshot
-python ask_assistant.py --hotkey  # Register Ctrl+Shift+A, stay running
-
-# Hotkey mode:
-# 1. Press Ctrl+Shift+A anywhere (game or desktop)
-# 2. Type your question
-# 3. AI marks the answer with a green rectangle or circle
-# 4. Annotated screenshot saved to screenshots/ folder
-```
-
-### Input Logger
-```powershell
-python input_logger.py --start    # Start (run once, stays in bg)
-python input_logger.py --status   # Check buffer
-python input_logger.py --stop     # Stop and save
-```
-
-### System Monitor
-```powershell
-python system_monitor.py --start      # Start (run once, stays in bg)
-python system_monitor.py --status     # Latest readings
-python system_monitor.py --report 5   # 5 min analysis report
-python system_monitor.py --stop       # Stop
-```
+**Current setup:**
+- Virtual screen: 3286x1080 (origin x=-1366)
+- Monitor 1 (right, primary): 1920x1080 at x=0
+- Monitor 2 (left, secondary): 1366x768 at x=-1366
 
 ## Dependencies
 
@@ -102,15 +108,14 @@ py -m pip install mss pillow httpx keyboard pynput psutil wmi nvidia-ml-py pytho
 
 | Package | Purpose |
 |---------|---------|
-| `mss` | Cross-platform screenshot capture (virtual screen / multi-monitor) |
+| `mss` | Screenshot capture (virtual screen / multi-monitor) |
 | `Pillow` | Image resize for AI payloads |
 | `httpx` | AI Gateway API calls |
-| `keyboard` | Global keypress detection |
-| `pynput` | Mouse movement/clicks detection |
+| `keyboard` / `pynput` | Global hotkey detection |
 | `psutil` | CPU/RAM/disk monitoring |
 | `wmi` | GPU info via Windows API |
 | `nvidia-ml-py` | NVIDIA GPU utilization/temp/VRAM |
-| `python-dotenv` | Load API key from `.env` file |
+| `python-dotenv` | Load API key from `.env` |
 
 ## Environment Setup
 
@@ -120,82 +125,6 @@ OLAGON_API_KEY=your_api_key_here
 ```
 
 Get your API key from Olagon Gateway.
-
-## Multi-Monitor Support
-
-All screen capture uses **virtual screen** (all monitors combined):
-- `mss.monitors[0]` = virtual screen spanning all monitors
-- Overlay window spans full virtual screen
-- Coordinates are 0-indexed from virtual screen top-left
-
-**Current monitor setup:**
-- Virtual screen: 3286x1080 (origin x=-1366)
-- Monitor 1 (primary, right): 1920x1080 at x=0
-- Monitor 2 (secondary, left): 1366x768 at x=-1366
-
-## What Gets Monitored
-
-| Layer | Data | Interval |
-|-------|------|----------|
-| Screen | PNG screenshots | 10s |
-| Input | Keys + mouse clicks + positions | realtime |
-| System | CPU%, RAM%, GPU%, VRAM, temps | 2s |
-
-All data stored locally. AI called on-demand only (1 request per analysis).
-
-## Ask Assistant — Point at Things
-
-The `ask_assistant.py` lets you ask questions about what's on screen and AI will **mark the answer directly on screen** with a breathing shape:
-
-**Example use cases:**
-- "mana Balatro game?" → green rect appears on the Balatro tile
-- "mana folder Minami Lane?" → AI marks folder with green rect
-- "item apa untuk build damage?" → AI marks relevant items
-
-**How it works:**
-1. Press `Ctrl+Shift+A` or run with `--once`
-2. Type your question
-3. Screen captured (3286x1080 virtual screen, resized to 1920px for AI)
-4. AI analyzes and returns shape + pixel coordinates
-5. Coordinates scaled back to virtual screen coords
-6. Transparent overlay draws the shape with breathing animation
-7. Annotated screenshot saved to `screenshots/annotated_*.png`
-
-**Shape rules:**
-- `rect` — for boxes, cards, inventory slots, item icons, game tiles
-- `circle` — for orbs, gems, map markers, circular icons
-
-**Color codes:**
-- `green` — correct/yes/found
-- `yellow` — warning/caution
-- `red` — wrong/not found/off
-- `blue` — info/neutral
-
-## Game Compatibility
-
-Built-in game keywords:
-- Forza Horizon 6 (detection, racing analysis)
-- Valorant, CS2 (FPS/shooter analysis: tap/burst/spray, movement)
-- Diablo, Path of Exile (ARPG analysis)
-- Elden Ring, Cyberpunk, Genshin, Stardew, Descending The Woods
-
-## AI Analysis Output
-
-Retrospective mode (`--retro`) sends in 1 request:
-1. Up to 4 resized screenshot frames
-2. Input summary (keys, clicks, mouse positions)
-3. System performance summary (CPU/RAM/GPU usage, lag events, bottlenecks)
-
-Output includes:
-- Gameplay description
-- Technical mistake analysis
-- PC performance correlation with gameplay
-- Upgrade recommendations
-- Game-specific advice (racing line, fire mode, positioning)
-
-Ask mode sends current screen + question:
-- AI returns coordinates + shape of the answer
-- Overlay draws the shape on screen
 
 ## AI Gateway
 
@@ -209,7 +138,6 @@ Model: `claude-3-5-sonnet`
 - GPU: NVIDIA RTX 3060 12GB VRAM
 - OS: Windows 11 Pro
 - GPU Driver: v32.0.16.1062
-- Storage: C: 236GB SSD | D: 684GB SSD
 
 ## License
 

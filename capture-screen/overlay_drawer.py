@@ -32,12 +32,12 @@ def show_circle(cx, cy, r, label="", color="#00FF00", duration=5):
            label=label, color=color, duration=duration)
 
 def show_rect_rel(x, y, w, h, label="", color="#00FF00", duration=5):
-    sw, sh = _screen_size()
+    sw, sh, *_ = _screen_size()
     show_rect(int(x*sw), int(y*sh), int(w*sw), int(h*sh),
               label, color, duration)
 
 def show_circle_rel(cx, cy, r, label="", color="#00FF00", duration=5):
-    sw, sh = _screen_size()
+    sw, sh, *_ = _screen_size()
     show_circle(int(cx*sw), int(cy*sh), int(r*sw),
                 label, color, duration)
 
@@ -55,17 +55,11 @@ def _spawn(shape, x, y, w, h, cx, cy, r, label, color, duration):
         "--dur=" + str(duration),
     ]
     creation_flags = 0
-    if sys.platform == "win32":
-        try:
-            creation_flags = 0x08000000  # CREATE_NO_WINDOW
-        except Exception:
-            pass
     proc = subprocess.Popen(
         [sys.executable, script] + args,
         creationflags=creation_flags,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        stdin=subprocess.DEVNULL
+        stderr=subprocess.DEVNULL
     )
     with _lock:
         _active[uid] = proc

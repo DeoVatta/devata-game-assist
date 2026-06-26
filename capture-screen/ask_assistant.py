@@ -211,11 +211,6 @@ def parse_response(text: str) -> list[dict]:
     return commands
 
 
-def _hex_to_bgr(c):
-    c = c.lstrip('#')
-    return (int(c[4:6], 16), int(c[2:4], 16), int(c[0:2], 16))
-
-
 def spawn_overlay(commands: list, duration: int = 12):
     if not OVERLAY_AVAILABLE:
         print("[ask] Overlay not available.")
@@ -224,7 +219,8 @@ def spawn_overlay(commands: list, duration: int = 12):
         if cmd.get("shape") == "none":
             continue
         shape = cmd["shape"]
-        color = _hex_to_bgr(cmd.get("color", "#00FF00"))
+        # Pass hex string directly
+        color = str(cmd.get("color", "#00FF00"))
         label = cmd.get("label", "")
         dur = int(cmd.get("duration", duration))
         try:

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+*.spec.bak
+config.yaml
+profiles/
+!profiles/portal_profile.default.yaml
+*.png
+_dump/
+_tools/

@@ -1,0 +1,54 @@
+game:
+  process_name: taskbarhero.exe
+  pid: null
+log:
+  path: '%LOCALAPPDATA%/../LocalLow/TesseractStudio/TaskbarHero/Player.log'
+detect:
+  boss_key_prefix: '92'
+  exclude_key_prefix: '93'
+  boss_item_keys: []
+  exclude_item_keys: []
+  debounce_seconds: 10
+rotation:
+  delay_before_switch: 2.0
+  delay_after_switch: 3.0
+  min_switch_interval: 15.0
+  stage_timeout_minutes: 0
+chest_open:
+  enabled: false
+  rel:
+  - 0.5
+  - 0.2
+  delay_before: 0.3
+  delay_after: 0.5
+  interval_seconds: 0.0
+  click_interval: 0.12
+  click_method: auto
+  focus_delay: 0.2
+  move_delay: 0.08
+  click_hold: 0.05
+normal_chest:
+  enabled: false
+  rel: [0.5, 0.5]
+  delay_before: 0.3
+  delay_after: 0.5
+  interval_seconds: 900
+  click_interval: 0.12
+  click_method: auto
+  focus_delay: 0.2
+  move_delay: 0.08
+  click_hold: 0.05
+portal:
+  profile: profiles/portal_profile.yaml
+  open_before_switch: false
+  button_rel:
+  - 0.52
+  - 0.92
+  window_rect: null
+warehouse:
+  enabled: false
+  interval_minutes: 30
+mailbox_check:
+  enabled: false
+fold_page:
+  mode: always_expand

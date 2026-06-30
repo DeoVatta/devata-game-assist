@@ -1,0 +1,1 @@
+"""TaskBarHero automation helper."""
